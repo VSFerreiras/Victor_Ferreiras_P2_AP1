@@ -1,6 +1,7 @@
 using Victor_Ferreiras_P2_AP1.Components;
 using Victor_Ferreiras_P2_AP1.DAL;
 using Microsoft.EntityFrameworkCore;
+using Victor_Ferreiras_P2_AP1.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,8 @@ builder.Services.AddRazorComponents()
 var ConStr = builder.Configuration.GetConnectionString("SqlConStr");
 
 builder.Services.AddDbContextFactory<Contexto>(o => o.UseSqlServer(ConStr));
+
+builder.Services.AddScoped<CiudadesService>();
 
 var app = builder.Build();
 
