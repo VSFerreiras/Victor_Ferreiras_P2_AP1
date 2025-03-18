@@ -1,0 +1,71 @@
+@page "/Encuesta/Delete/{EncuestaId:int}"
+@inject EncuestasService EncuestasService
+@inject NavigationManager navigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Eliminar Encuesta</PageTitle>
+<EditForm Model="Encuesta" OnValidSubmit="Eliminar">
+    <DataAnnotationsValidator />
+
+    <div class="container">
+        <div class="card shadow-lg">
+            <div class="card-header text-center bg-primary text-white m-2">
+                <h4 class="card-title"><strong>Eliminar Encuesta</strong></h4>
+            </div>
+
+            <div class="card-body">
+                <div class="card-header bg-light">
+                    <h6 class="text-danger fs-4">¿Estás seguro de que quieres eliminar esta encuesta?</h6>
+                </div>
+                <div class="card shadow-lg my-3 col-md-6">
+                    <h4 class="bg-light card-header fw-bold text-center">Datos de la Encuesta</h4>
+                    <ul class="px-3 pt-4 pb-5 list-unstyled">
+                        <li><strong>EncuestaId: </strong>@Encuesta.EncuestaId</li>
+                        <li><strong>Fecha: </strong>@Encuesta.FechaEncuesta.ToShortDateString()</li>
+                        <li><strong>Asignatura: </strong>@Encuesta.Asignatura</li>
+                        <li><strong>Monto Total: </strong>@Encuesta.MontoTotal.ToString("N2")</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-footer mt-2">
+                <button type="submit" class="btn btn-outline-danger bi bi-trash-fill"> Eliminar </button>
+                <a href="/Encuesta/Index" class="btn btn-outline-primary"> <span class="bi bi-box-arrow-left"></span> Volver</a>
+            </div>
+        </div>
+    </div>
+
+    <label class="text-success" hidden="@string.IsNullOrEmpty(Saved)">@Saved</label>
+    <label class="text-danger" hidden="@string.IsNullOrEmpty(Error)">@Error</label>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int EncuestaId { get; set; }
+
+    private string Error { get; set; } = string.Empty;
+    private string Saved { get; set; } = string.Empty;
+    public Encuestas Encuesta { get; set; } = new Encuestas();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Encuesta = await EncuestasService.Buscar(EncuestaId);
+    }
+
+    public async Task Eliminar()
+    {
+        Error = string.Empty;
+        Saved = string.Empty;
+
+        var eliminado = await EncuestasService.Eliminar(Encuesta.EncuestaId);
+        if (eliminado)
+        {
+            Saved = "Encuesta Eliminada Exitosamente";
+            navigationManager.NavigateTo("/Encuesta/Index");
+        }
+        else
+        {
+            Error = "Error al eliminar la Encuesta";
+        }
+    }
+}

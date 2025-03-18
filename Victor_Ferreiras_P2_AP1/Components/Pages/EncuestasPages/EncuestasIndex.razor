@@ -1,0 +1,127 @@
+@page "/Encuesta/Index"
+@inject EncuestasService EncuestasService
+@rendermode InteractiveServer
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header header-padding text-center">
+            <h2 class="card-title">Consulta de Encuestas</h2>
+            <div class="d-flex justify-content-end p-2">
+                <a href="/Encuesta/View" class="btn btn-success">
+                    <span class="bi bi-plus-circle"></span> Crear
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-4">
+                    <label class="col-form-label">Filtrar por</label>
+                </div>
+                <div class="col-4">
+                    <label class="col-form-label">Búsqueda</label>
+                </div>
+            </div>
+            <div class="row align-items-center">
+                <div class="col-4">
+                    <div class="input-group">
+                        <InputSelect class="form-select" @bind-Value="Filtro">
+                            <option value="" selected disabled>Elija una opción</option>
+                            <option value="Asignatura">Asignatura</option>
+                            <option value="Id">Id</option>
+                        </InputSelect>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="Restablecer">
+                            <span class="bi bi-arrow-clockwise"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <div class="input-group">
+                        <input class="form-control" placeholder="Buscar" @bind="ValorFiltro" />
+                        <button type="button" class="btn btn-primary" @onclick="Buscar">
+                            <span class="bi bi-search"></span> Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-hover text-center mt-3">
+                <thead class="table-striped text-black" style="border-bottom: 3px solid green;">
+                <tr>
+                    <th>Id</th>
+                    <th>Fecha</th>
+                    <th>Asignatura</th>
+                    <th>Monto</th>
+                    <th>Editar</th>
+                    <th>Eliminar</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var encuesta in ListaEncuestas)
+                {
+                    <tr>
+                        <td>@encuesta.EncuestaId</td>
+                        <td>@encuesta.FechaEncuesta.ToShortDateString()</td>
+                        <td>@encuesta.Asignatura</td>
+                        <td>@encuesta.MontoTotal.ToString("N2")</td>
+                        <td>
+                            <a class="btn btn-outline-success bi bi-pencil-fill" href="/Encuesta/View/@encuesta.EncuestaId"></a>
+                        </td>
+                        <td>
+                            <a class="btn btn-outline-danger bi bi-trash-fill" href=""></a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <div class="d-flex justify-content-between mt-3">
+                <label class="ms-3">Cantidad: @ListaEncuestas.Count</label>
+                <div class="col-5 text-end">
+                    <label class="ms-5">Total: @ListaEncuestas.Sum(e => e.MontoTotal).ToString("N2")</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <label class="text-success" hidden="@string.IsNullOrEmpty(Saved)">@Saved</label>
+    <label class="text-danger" hidden="@string.IsNullOrEmpty(Error)">@Error</label>
+</div>
+
+@code
+{
+    public List<Encuestas> ListaEncuestas { get; set; } = new List<Encuestas>();
+    public string Filtro { get; set; } = string.Empty;
+    public string ValorFiltro { get; set; } = string.Empty;
+    private string Error { get; set; } = string.Empty;
+    private string Saved { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ListaEncuestas = await EncuestasService.Listar(c => c.EncuestaId > 0);
+    }
+
+    private async Task Buscar()
+    {
+        if (ValorFiltro.Trim() != "")
+        {
+            if (Filtro == "Asignatura")
+            {
+                ListaEncuestas = await EncuestasService
+                    .Listar(e => e.Asignatura.ToLower().Contains(ValorFiltro.ToLower()));
+            }
+            else if (Filtro == "Id" && int.TryParse(ValorFiltro, out var EncuestaId))
+            {
+                ListaEncuestas = await EncuestasService.Listar(e => e.EncuestaId == EncuestaId);
+            }
+        }
+        else
+        {
+            ListaEncuestas = await EncuestasService.Listar(e => e.EncuestaId > 0);
+        }
+    }
+
+    private async Task Restablecer()
+    {
+        ListaEncuestas = await EncuestasService.Listar(e => e.EncuestaId > 0);
+        Filtro = string.Empty;
+        ValorFiltro = string.Empty;
+    }
+}

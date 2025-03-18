@@ -1,0 +1,67 @@
+<div class="col-auto input-group align-items-center">
+    <label class="col-form-label input-group-text"></label>
+
+    <InputSelect class="form-control form-select" @bind-Value="CiudadId">
+        <option disabled value="0">Ciudad</option>
+        @foreach (var ciudad in Ciudades)
+        {
+            <option value="@ciudad.CiudadId">@ciudad.CiudadNombre</option>
+        }
+    </InputSelect>
+
+    <label class="col-form-label input-group-text">Monto de la cuenta</label>
+    <InputNumber class="form-control" id="quantity-input" @bind-Value="Monto" min="0" />
+
+    <button type="button" class="btn btn-outline-success bi bi-plus" @onclick="HandleSelection">Agregar</button>
+</div>
+
+<label class="text-success" hidden="@string.IsNullOrEmpty(Saved)">@Saved</label>
+<label class="text-danger" hidden="@string.IsNullOrEmpty(Error)">@Error</label>
+
+@code {
+    [Parameter]
+    public List<Ciudades> Ciudades { get; set; } = new List<Ciudades>();
+
+    [Parameter]
+    public int CiudadId { get; set; }
+
+    [Parameter]
+    public double Monto { get; set; }
+
+    [Parameter]
+    public EventCallback<(Ciudades Ciudad, double Monto)> OnCiudadSelected { get; set; }
+
+    private string Error { get; set; } = string.Empty;
+    private string Saved { get; set; } = string.Empty;
+
+    private async Task HandleSelection()
+    {
+        ResetMessages();
+
+        if (!IsValidSelection(out var ciudadSeleccionada))
+        {
+            return;
+        }
+
+        await OnCiudadSelected.InvokeAsync((ciudadSeleccionada, Monto));
+        Saved = "Ciudad y Monto seleccionados correctamente.";
+    }
+
+    private void ResetMessages()
+    {
+        Error = string.Empty;
+        Saved = string.Empty;
+    }
+
+    private bool IsValidSelection(out Ciudades ciudadSeleccionada)
+    {
+        ciudadSeleccionada = null;
+        if (CiudadId <= 0)
+        {
+            Error = "Por favor, seleccione una ciudad.";
+            return false;
+        }
+        ciudadSeleccionada = Ciudades.FirstOrDefault(c => c.CiudadId == CiudadId);
+        return true;
+    }
+}
