@@ -1,0 +1,182 @@
+@page "/Encuesta/View/{EncuestaId:int?}"
+@inject CiudadesService ciudadService
+@inject EncuestasService EncuestasService
+@inject NavigationManager navigationManager
+@using Models
+@rendermode InteractiveServer
+
+<EditForm Model="Encuesta" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="container">
+        <div class="card shadow-lg">
+            <div class="card-header">
+                <h3 class="card-title">@((Encuesta.EncuestaId == 0) ? "Encuesta" : "Editar Encuesta")</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label">Id</label>
+                        <div class="d-flex">
+                            <InputNumber class="form-control" @bind-Value="Encuesta.EncuestaId"/>
+                            <button type="button" class="btn btn-outline-primary bi bi-search ms-2" />
+                        </div>
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Fecha</label>
+                        <InputDate class="form-control" @bind-Value="Encuesta.FechaEncuesta"/>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Asignatura</label>
+                    <InputText class="form-control" @bind-Value="Encuesta.Asignatura" />
+                </div>
+
+                <div class="border border-success p-3 mt-3">
+                    <h3>Detalle</h3>
+                    <div class="row align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label">Ciudad</label>
+                            <InputSelect class="form-select form-select-sm" @bind-Value="DetalleSeleccionado.CiudadId">
+                                <option disabled value="0">Seleccione Ciudad</option>
+                                @foreach (var ciudad in listaCiudades)
+                                {
+                                    <option value="@ciudad.CiudadId">@ciudad.CiudadNombre</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-auto ms-2">
+                            <label class="form-label">Monto de la Cuenta</label>
+                            <InputNumber class="form-control form-control-sm" @bind-Value="DetalleSeleccionado.Monto" min="0"/>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-primary" @onclick="AgregarDetalle">
+                                <span class="bi bi-plus"></span><strong>Agregar</strong>
+                            </button>
+                        </div>
+                    </div>
+                    <table class="table mt-3">
+                        <thead>
+                            <tr>
+                                <th>Ciudad</th>
+                                <th>Monto</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var detalle in Encuesta.EncuestasDetalles)
+                            {
+                                <tr>
+                                    <td>
+                                        @(detalle.Ciudad != null
+                                            ? detalle.Ciudad.CiudadNombre 
+                                            : listaCiudades.FirstOrDefault(c => c.CiudadId == detalle.CiudadId)?.CiudadNombre)
+                                    </td>
+                                    <td>@detalle.Monto.ToString("N2")</td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-dark" @onclick="() => EliminarDetalle(detalle)">
+                                            <span class="bi bi-trash"></span> Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <hr />
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex flex-column">
+                            <label class="mb-1">Cantidad:</label>
+                            <div class="border p-2">@Encuesta.EncuestasDetalles.Count</div>
+                        </div>
+                        <div class="d-flex flex-column">
+                            <label class="mb-1">Total:</label>
+                            <div class="border p-2 text-end">@Encuesta.EncuestasDetalles.Sum(d => d.Monto).ToString("N2")</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card-footer text-center mt-2">
+                <div class="btn-group" role="group">
+                    <a href="/Encuesta/Index" class="btn btn-outline-primary">
+                        Nuevo <span class="bi bi-file-earmark-fill"></span>
+                    </a>
+                    <button type="submit" class="btn btn-outline-success">
+                        Guardar <span class="bi bi-file-earmark-text-fill"></span>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" @onclick="Eliminar">
+                        Eliminar <span class="bi bi-trash-fill"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int? EncuestaId { get; set; }
+
+    public Encuestas Encuesta { get; set; } = new Encuestas();
+    public List<Ciudades?> listaCiudades { get; set; } = new List<Ciudades?>();
+    public EncuestasDetalle DetalleSeleccionado { get; set; } = new EncuestasDetalle();
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaCiudades = await ciudadService.Listar(c => true);
+
+        if (EncuestaId.HasValue && EncuestaId.Value != 0)
+        {
+            var encuestaEncontrada = await EncuestasService.Buscar(EncuestaId.Value);
+            if (encuestaEncontrada is not null)
+            {
+                Encuesta = encuestaEncontrada;
+            }
+            else
+            {
+                navigationManager.NavigateTo("/Encuesta/Index");
+            }
+        }
+        else
+        {
+            Encuesta.FechaEncuesta = DateTime.Now;
+        }
+    }
+
+    private void AgregarDetalle()
+    {
+        if (DetalleSeleccionado.CiudadId > 0 && DetalleSeleccionado.Monto > 0)
+        {
+            var detalleNuevo = new EncuestasDetalle
+            {
+                CiudadId = DetalleSeleccionado.CiudadId,
+                Monto = DetalleSeleccionado.Monto
+            };
+            Encuesta.EncuestasDetalles.Add(detalleNuevo);
+            DetalleSeleccionado = new EncuestasDetalle();
+        }
+    }
+
+    private void EliminarDetalle(EncuestasDetalle detalle)
+    {
+        Encuesta.EncuestasDetalles.Remove(detalle);
+    }
+
+    private async Task Guardar()
+    {
+        Encuesta.MontoTotal = Encuesta.EncuestasDetalles.Sum(d => d.Monto);
+        if (await EncuestasService.Guardar(Encuesta))
+        {
+            navigationManager.NavigateTo("/Encuesta/Index");
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        if (Encuesta.EncuestaId != 0)
+        {
+            await EncuestasService.Eliminar(Encuesta.EncuestaId);
+            navigationManager.NavigateTo("/Encuesta/Index");
+        }
+    }
+}
